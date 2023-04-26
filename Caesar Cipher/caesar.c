@@ -17,7 +17,7 @@ How it work: Suppose a = 0, b = 1, c = 2, d = 3, e = 4
 #include <string.h>//strlen()
 #include <stdlib.h>
 
-//Definte my Caesa Cipher Function
+//Define my Caesa Cipher Function
 void caesarCipher(char* plainText, int key);
 int main()
 {
