@@ -1,5 +1,5 @@
 # Cryptographic-Algorithm
-An implementation of cryptographic algorithm
+An implementation of cryptographic algorithm in C
 
 1) Caesar Cipher
 2) Vigener Cipher
