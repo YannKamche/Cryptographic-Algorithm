@@ -9,8 +9,6 @@ int main()
 	int i, j;
 	
     int keyLength = strlen(keyString);
-   
-    
 	//Getting a value for inputString
     printf("Please enter a message: ");
     gets(inputString);
@@ -25,8 +23,6 @@ int main()
     		inputString[i] = inputString[i] - 32;
 		}
 	}
-    
-  
 	//Creating new key according to inputString length
     for(i=0, j=0; i<stringLength; i++, j++)
     {
@@ -35,8 +31,6 @@ int main()
     		newKeyValue[i] = keyString[j];
 	}
 	newKeyValue[i] = '\0';
-	
-	
 	//Encryption Section
 	for(i=0; i< stringLength; i++)
 		if(inputString[i] == 32) //Handling blank space between words
@@ -62,12 +56,10 @@ int main()
 		decryptedString[i] = (((encryptedString[i] - newKeyValue[i]) + 26) % 26) + 65;
 }
 	decryptedString[i] = '\0'; //Letting the code know that it reached the end of the string
-	
     //Output results
     printf("Plaintext: %s\n", inputString);
     printf("Keyword: %s\n", keyString);
     printf("Ciphertext: %s\n", encryptedString);
     printf("Decrypted Text: %s\n", decryptedString);
-    
     return 0;
 }
