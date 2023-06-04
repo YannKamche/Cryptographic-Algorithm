@@ -10,4 +10,4 @@ An implementation of cryptographic algorithm in C
 7) Substitution Ciphers
 8) Random Number Generator
 9) Beale Cipher
-10) 
+10) Playfair Cipher
