@@ -1,109 +1,78 @@
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
-#include <time.h>
 
-#define QUEUE_CAPACITY 10
-#define HASH_TABLE_SIZE 256
-typedef struct Node {
-    int value;
-    struct Node* next_node;
-} Node;
+#define LEFTROTATE(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 
-typedef struct Queue {
-    Node* head_node;
-    Node* tail_node;
-    size_t queue_size;
-} Queue;
+void ripemd128(const uint8_t *data, size_t length, uint8_t *hash) {
+    // Initial values
+    uint32_t h[4] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476};
 
-void enqueue(Queue* queue, int value) {
-    Node* new_node = (Node*) malloc(sizeof(Node));
-    new_node->value = value;
-    new_node->next_node = NULL;
-    if (queue->head_node == NULL) {
-        queue->head_node = new_node;
-        queue->tail_node = new_node;
-    } else {
-        queue->tail_node->next_node = new_node;
-        queue->tail_node = new_node;
-    }
-    queue->queue_size++;
-}
-int dequeue(Queue* queue) {
-    if (queue->head_node == NULL) {
-        fprintf(stderr, "Error: queue is empty\n");
-        exit(EXIT_FAILURE);
-    }
-    int value = queue->head_node->value;
-    Node* temp_node = queue->head_node;
-    queue->head_node = queue->head_node->next_node;
-    free(temp_node);
-    queue->queue_size--;
-    return value;
-}
+    // Constants
+    uint32_t k1[4] = {0x00000000, 0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC};
+    uint32_t k2[4] = {0x50A28BE6, 0x5C4DD124, 0x6D703EF3, 0x00000000};
 
-void hash_function(int* input_values, size_t input_size, Queue** hash_table) {
-    for (size_t i = 0; i < input_size; i++) {
-        int index = i % HASH_TABLE_SIZE;
-        int value = *(input_values + i);
-        Queue* queue = *(hash_table + index);
-        if (queue->queue_size == QUEUE_CAPACITY) {
-            dequeue(queue);
-        }
-        enqueue(queue, value);
-    }
-}
-void print_hash_table(Queue** hash_table) {
-    for (int i = 0; i < HASH_TABLE_SIZE; i++) {
-        Queue* queue = *(hash_table + i);
-        if (queue->queue_size > 0) {
-            printf("Hash[%d]:", i);
-            Node* current_node = queue->head_node;
-            while (current_node != NULL) {
-                printf(" %d", current_node->value);
-                current_node = current_node->next_node;
+    // Message padding
+    uint32_t padded_length = ((length + 8 + 63) / 64) * 64;
+    uint8_t *padded_data = (uint8_t *)calloc(padded_length, sizeof(uint8_t));
+    memcpy(padded_data, data, length);
+    padded_data[length] = 0x80;
+    uint64_t bit_length = length * 8;
+    memcpy(padded_data + padded_length - 8, &bit_length, sizeof(uint64_t));
+
+    // Message processing
+    for (size_t i = 0; i < padded_length; i += 64) {
+        uint32_t *w = (uint32_t *)(padded_data + i);
+        uint32_t a = h[0], b = h[1], c = h[2], d = h[3];
+
+        for (size_t j = 0; j < 64; j++) {
+            uint32_t temp;
+            if (j < 16) {
+                temp = a + (b ^ c ^ d) + w[j] + k1[0];
+            } else if (j < 32) {
+                temp = a + ((b & c) | (~b & d)) + w[(5 * j + 1) % 16] + k1[1];
+            } else if (j < 48) {
+                temp = a + ((b | ~c) ^ d) + w[(3 * j + 5) % 16] + k1[2];
+            } else {
+                temp = a + (b ^ (c | ~d)) + w[(7 * j) % 16] + k1[3];
             }
-            printf("\n");
+
+            uint32_t temp2 = b + LEFTROTATE(temp, k2[j / 16]);
+            a = d;
+            d = c;
+            c = b;
+            b = temp2;
         }
+
+        h[0] += a;
+        h[1] += b;
+        h[2] += c;
+        h[3] += d;
     }
+
+    // Output hash
+    uint32_t *hash32 = (uint32_t *)hash;
+    for (size_t i = 0; i < 4; i++) {
+        *hash32++ = h[i];
+    }
+
+    free(padded_data);
 }
 
-void free_hash_table(Queue** hash_table) {
-    for (int i = 0; i < HASH_TABLE_SIZE; i++) {
-        Queue* queue = *(hash_table + i);
-        Node* current_node = queue->head_node;
-        while (current_node != NULL) {
-            Node* temp_node = current_node;
-            current_node = current_node->next_node;
-            free(temp_node);
-        }
-        free(queue);
-    }
-}
-int main() {
-    srand(time(NULL));
-
-    size_t input_size = 10;
-    int* input_values = (int*) malloc(input_size * sizeof(int));
-    for (size_t i = 0; i < input_size; i++) {
-        *(input_values + i) = rand();
-    }
-
-    Queue** hash_table = (Queue**) calloc(HASH_TABLE_SIZE, sizeof(Queue*));
-    for (int i = 0; i < HASH_TABLE_SIZE; i++) {
-        *(hash_table + i) = (Queue*) malloc(sizeof(Queue));
-        (*(hash_table + i))->head_node = NULL;
-        (*(hash_table + i))->tail_node = NULL;
-        (*(hash_table + i))->queue_size = 0;
-    }
-    hash_function(input_values, input_size, hash_table);
-    printf("Input:");
-    for (size_t i = 0; i < input_size; i++) {
-        printf(" %d", *(input_values + i));
+void print_hash(const uint8_t *hash) {
+	printf("I am hashing this text with ripemd 128\n");
+    for (int i = 0; i < 16; i++) {
+        printf("%02x", hash[i]);
     }
     printf("\n");
-    print_hash_table(hash_table);
-    free(input_values);
-    free_hash_table(hash_table);
-    free(hash_table);
+}
+
+int main() {
+    // Example usage
+    uint8_t message[] = "I am hashing this text with ripemd 128";
+    uint8_t hash[16];
+    ripemd128(message, sizeof(message) - 1, hash);
+    print_hash(hash);
     return 0;
 }
